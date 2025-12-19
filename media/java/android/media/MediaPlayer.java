@@ -656,6 +656,7 @@ public class MediaPlayer extends PlayerBase
     private boolean mDrmProvisioningInProgress;
     private boolean mPrepareDrmInProgress;
     private ProvisioningThread mDrmProvisioningThread;
+    private boolean mIsVideoPlayer = false;
 
     /**
      * Default constructor. Consider using one of the create() methods for
@@ -3065,6 +3066,23 @@ public class MediaPlayer extends PlayerBase
             throw new IllegalArgumentException("Illegal mimeType for timed text source: " + mime);
         }
 
+        if (mIsVideoPlayer) {
+            Parcel request = Parcel.obtain();
+            Parcel reply = Parcel.obtain();
+            try {
+                request.writeInterfaceToken(IMEDIA_PLAYER);
+                request.writeInt(INVOKE_ID_ADD_EXTERNAL_SOURCE_FD);
+                request.writeFileDescriptor(fd);
+                request.writeLong(offset);
+                request.writeLong(length);
+                request.writeString(mime);
+                invoke(request, reply);
+            } finally {
+                request.recycle();
+                reply.recycle();
+                return;
+            }
+        }
         final FileDescriptor dupedFd;
         try {
             dupedFd = Os.dup(fd);
@@ -6249,4 +6267,10 @@ public class MediaPlayer extends PlayerBase
         public static final String ERROR_CODE = "android.media.mediaplayer.errcode";
 
     }
+
+    /** @hide */
+    public void setVideoPlayerFlag() {
+        mIsVideoPlayer = true;
+    }
+
 }
