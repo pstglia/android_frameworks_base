@@ -310,6 +310,11 @@ public class InputManagerService extends IInputManager.Stub
     private static native void nativeDisplayRemoved(long ptr, int displayId);
     private static native void nativeSetInputDispatchMode(long ptr, boolean enabled, boolean frozen);
     private static native void nativeSetSystemUiLightsOut(long ptr, boolean lightsOut);
+
+    /// AW CODE[feat]hide mouse icon when exit mouse mode
+    private static native void nativeSetHidePointerIcon(long ptr, boolean hide);
+    /// AW CODE:add end
+
     private static native void nativeSetFocusedApplication(long ptr,
             int displayId, InputApplicationHandle application);
     private static native void nativeSetFocusedDisplay(long ptr, int displayId);
@@ -3528,6 +3533,12 @@ public class InputManagerService extends IInputManager.Stub
                 @NonNull IBinder toChannelToken) {
             return InputManagerService.this.transferTouchFocus(fromChannelToken, toChannelToken);
         }
+
+        /// AW CODE[feat]hide mouse icon when exit mouse mode
+        public void setHidePointerIcon(boolean hide) {
+            nativeSetHidePointerIcon(mPtr, hide);
+        }
+        /// AW CODE:add end
 
         @Override
         public void registerLidSwitchCallback(LidSwitchCallback callbacks) {

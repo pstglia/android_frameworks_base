@@ -4253,6 +4253,12 @@ public class Intent implements Parcelable, Cloneable {
     public static final String ACTION_SIM_STATE_CHANGED = "android.intent.action.SIM_STATE_CHANGED";
 
     /**
+     *
+     * @hide
+     */
+    public static final String ACTION_RADIO_STATE_CHANGED = "android.intent.action.RADIO_STATE_CHANGED";
+
+    /**
      * The extra used with {@link #ACTION_SIM_STATE_CHANGED} for broadcasting SIM STATE.
      * This will have one of the following intent values.
      * @see #SIM_STATE_UNKNOWN
@@ -4768,6 +4774,10 @@ public class Intent implements Parcelable, Cloneable {
      * {@hide}
      */
     public static final int EXTRA_THERMAL_STATE_EXCEEDED = 2;
+
+    @SdkConstant(SdkConstantType.BROADCAST_INTENT_ACTION)
+    public static final String ACTION_HDMISTATUS_CHANGED = "android.intent.action.HDMISTATUS_CHANGED";
+    public final static String ACTION_HDMI_PLUGGED = "android.intent.action.HDMI_PLUGGED";
 
     /**
      * Broadcast Action: Indicates the dock in idle state while device is docked.
@@ -6794,6 +6804,11 @@ public class Intent implements Parcelable, Cloneable {
      * @hide
      */
     public static final int FLAG_RECEIVER_EXCLUDE_BACKGROUND = 0x00800000;
+
+    /* add intent for audio plug in/out */
+     @SdkConstant(SdkConstantType.BROADCAST_INTENT_ACTION)
+     public static final String ACTION_AUDIO_PLUG_IN_OUT = "android.intent.action.AUDIO_PLUG_IN_OUT";
+
     /**
      * If set, this broadcast is being sent from the shell.
      * @hide

@@ -3984,6 +3984,20 @@ public final class Settings {
         @Deprecated
         public static final String STAY_ON_WHILE_PLUGGED_IN = Global.STAY_ON_WHILE_PLUGGED_IN;
 
+
+        /**
+            * Description:record the audio output channel<br/>
+            * @hide
+            */
+        public static final String AUDIO_OUTPUT_CHANNEL = "audio_output_channel";
+        /**
+            * Description:record the audio output policy<br/>
+            * @hide
+            */
+        public static final String AUDIO_MANAGE_POLICY = "audio_manage_policy";
+        /**@hide*/
+        public static final String ENABLE_PASS_THROUGH = "enable_pass_through";
+
         /**
          * What happens when the user presses the end call button if they're not
          * on a call.<br/>
@@ -5476,6 +5490,15 @@ public final class Settings {
          */
         @Deprecated
         public static final String LOGGING_ID = Secure.LOGGING_ID;
+
+        /// AW CODE[feat]add TvWindowManager and key mouse
+        /** @hide */
+        public static final String TV_MOUSEMODE_POINTERSPEED = "tv_mousemode_pointerspeed";
+
+        /** @hide */
+        public static final String TV_MOUSEMODE_STEPDISTANCE = "tv_mousemode_stepdistance";
+
+        ///AW:add end
 
         /**
          * @deprecated Use {@link android.provider.Settings.Global#NETWORK_PREFERENCE} instead
@@ -11186,6 +11209,28 @@ public final class Settings {
         @Readable
         public static final String HDMI_CONTROL_AUTO_DEVICE_OFF_ENABLED =
                 "hdmi_control_auto_device_off_enabled";
+
+        /// AW CODE: [feat] HDMI-CEC: Support language and input passthrough switch
+        /** 
+         * For TV, whether TV will set language to CEC devices.
+         * For CEC device, whether it will update language for TV.
+         * (0 = false, 1 = true)
+         *
+         * @hide
+         */
+        public static final String HDMI_CONTROL_AUTO_SET_LANGUAGE =
+                "hdmi_control_auto_set_language";
+         
+        /**
+         * For TV, whether TV will input passthrough to CEC devices.
+         * For CEC device, whether it will handle input passthrough from TV.
+         * (0 = false, 1 = true)
+         * 
+         * @hide
+         */
+        public static final String HDMI_CONTROL_AUTO_INPUT_PASSTHROUGH =
+                "hdmi_control_auto_input_passthrough";
+        /// AW: add end.
 
         /**
          * Property to decide which devices the playback device can send a <Standby> message to

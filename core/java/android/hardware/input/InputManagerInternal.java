@@ -79,6 +79,15 @@ public abstract class InputManagerInternal {
     public abstract boolean transferTouchFocus(@NonNull IBinder fromChannelToken,
             @NonNull IBinder toChannelToken);
 
+    /// AW CODE[feat]hide mouse icon when exit mouse mode
+    /**
+     * When in mouse mode,it is used to show or hide the mouse cursor
+     * @param hide Whether to hide the mouse cursor, true is hide,false is show
+     */
+    public abstract void setHidePointerIcon(boolean hide);
+
+    /// AW CODE:add end
+
     /** Registers the {@link LidSwitchCallback} to begin receiving notifications. */
     public abstract void registerLidSwitchCallback(@NonNull LidSwitchCallback callbacks);
 

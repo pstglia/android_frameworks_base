@@ -831,6 +831,32 @@ public class KeyEvent extends InputEvent implements Parcelable {
      */
     public static final int KEYCODE_PROFILE_SWITCH = 288;
 
+    /** Key code constant: a shortcut key for mouse */
+    public static final int KEYCODE_MOUSE           = 10009;
+    public static final int KEYCODE_TV_SYSTEM       = 10000;
+    /** Key code constant: a shortcut key for a time dialog */
+    public static final int KEYCODE_GOTO            = 10001;
+    /** Key code constant: a shortcut key for switching subtitles */
+    public static final int KEYCODE_SUBTITLE        = 10002;
+    /** Key code constant: a shortcut key for switching tracks */
+    public static final int KEYCODE_AUDIO           = 10003;
+    /** Key code constant: a shortcut key for zooming video */
+    public static final int KEYCODE_ZOOM            = 10004; 
+    /** Key code constant: a shortcut key for favourite */
+    public static final int KEYCODE_FAVOURITE       = 10006;
+    /** Key code constant: a shortcut key for loop */
+    public static final int KEYCODE_LOOP            = 10007;
+    /** Key code constant: a shortcut key for showing or hiding statusbar's expanded view */
+    public static final int KEYCODE_EXPAND          = 10008;
+    /** Key code constant: a shortcut key for movie */
+    public static final int KEYCODE_MOVIE           = 10010;
+    /** Key code constant: a shortcut key for app list */
+    public static final int KEYCODE_APPS            = 10011;
+    /** Key code constant: a shortcut key for the browser app */
+    public static final int KEYCODE_BROWSER         = 10012;
+    /** Key code constant: a shortcut key for the screenshot */
+    public static final int KEYCODE_SCREENSHOT      = 10013;
+
     /**
      * Integer value of the last KEYCODE. Increases as new keycodes are added to KeyEvent.
      * @hide
