@@ -67,6 +67,8 @@ import libcore.io.IoUtils;
 import java.io.BufferedReader;
 import java.io.EOFException;
 import java.io.File;
+// AW:Added for BOOTEVENT
+import java.io.FileOutputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -74,6 +76,10 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.security.Provider;
 import java.security.Security;
+/// AW CODE:boot:reflect VMRuntime setVerifierEnabled
+import java.lang.reflect.Method;
+import java.lang.reflect.InvocationTargetException;
+/// AW CODE:end
 
 /**
  * Startup class for the zygote process.
@@ -89,6 +95,7 @@ public class ZygoteInit {
 
     private static final String TAG = "Zygote";
 
+    static boolean isFirstBoot;
     private static final boolean LOGGING_DEBUG = Log.isLoggable(TAG, Log.DEBUG);
 
     private static final String PROPERTY_DISABLE_GRAPHICS_DRIVER_PRELOADING =
@@ -119,6 +126,31 @@ public class ZygoteInit {
      */
     private static final boolean PRELOAD_RESOURCES = true;
 
+    // AW: Added for BOOTEVENT
+    private static boolean sBootEventenable = SystemProperties.getBoolean("persist.sys.bootevent", true);
+    private static void logBootEvent(String bootevent) {
+        if (!sBootEventenable) {
+            return ;
+        }
+        FileOutputStream fos =null;
+        try {
+            fos = new FileOutputStream("/proc/bootevent");
+            fos.write(bootevent.getBytes());
+            fos.flush();
+        } catch (FileNotFoundException e) {
+            Log.e("BOOTEVENT","Failure open /proc/bootevent,not found!",e);
+        } catch (java.io.IOException e) {
+            Log.e("BOOTEVENT","Failure open /proc/bootevent entry",e);
+        } finally {
+            if (fos != null) {
+                try {
+                    fos.close();
+                } catch (IOException e) {
+                    Log.e ("BOOTEVENT","Failure close /proc/bootevent entry",e);
+                }
+            }
+        }
+    }
     private static final int UNPRIVILEGED_UID = 9999;
     private static final int UNPRIVILEGED_GID = 9999;
 
@@ -165,7 +197,26 @@ public class ZygoteInit {
         sPreloadComplete = true;
     }
 
-    static void lazyPreload() {
+    private static Thread mPreloadBaseThread = null;
+    private static Thread mPreloadClassThread = null;
+    private static Thread mPreloadNativeThread = null;
+
+    static void preload_base(TimingsTraceLog bootTimingsTraceLog) {
+        Log.d(TAG, "begin preload_base");
+        bootTimingsTraceLog.traceBegin("BeginPreload");
+        beginPreload();
+        bootTimingsTraceLog.traceEnd(); // BeginPreload
+
+        bootTimingsTraceLog.traceBegin("CacheNonBootClasspathClassLoaders");
+        cacheNonBootClasspathClassLoaders();
+        bootTimingsTraceLog.traceEnd(); // CacheNonBootClasspathClassLoaders
+
+        bootTimingsTraceLog.traceBegin("PreloadResources");
+        preloadResources();
+        bootTimingsTraceLog.traceEnd(); // PreloadResources
+    }
+
+    public static void lazyPreload() {
         Preconditions.checkState(!sPreloadComplete);
         Log.i(TAG, "Lazily preloading resources.");
 
@@ -279,11 +330,12 @@ public class ZygoteInit {
             droppedPriviliges = true;
         }
 
+        // AW:Added for BOOTEVENT
+        int count = 0;
         try {
             BufferedReader br =
                     new BufferedReader(new InputStreamReader(is), Zygote.SOCKET_BUFFER_SIZE);
 
-            int count = 0;
             int missingLambdaCount = 0;
             String line;
             while ((line = br.readLine()) != null) {
@@ -365,6 +417,9 @@ public class ZygoteInit {
                     throw new RuntimeException("Failed to restore root", ex);
                 }
             }
+            // AW:Added for BOOTEVENT
+            logBootEvent("Zygote:preload " + count + " classes in " +
+                    (SystemClock.uptimeMillis()-startTime) + "ms.");
         }
     }
 
@@ -410,7 +465,8 @@ public class ZygoteInit {
      */
     private static void preloadResources() {
         try {
-            mResources = Resources.getSystem();
+            if (mResources == null)
+                mResources = Resources.getSystem();
             mResources.startPreloading();
             if (PRELOAD_RESOURCES) {
                 Log.i(TAG, "Preloading resources...");
@@ -423,6 +479,9 @@ public class ZygoteInit {
                 Log.i(TAG, "...preloaded " + N + " resources in "
                         + (SystemClock.uptimeMillis() - startTime) + "ms.");
 
+                // AW:Added for BOOTEVENT
+                logBootEvent("Zygote:preload " + N + " obtatin resources in " +
+                        (SystemClock.uptimeMillis()-startTime) + "ms.");
                 startTime = SystemClock.uptimeMillis();
                 ar = mResources.obtainTypedArray(
                         com.android.internal.R.array.preloaded_color_state_lists);
@@ -441,6 +500,9 @@ public class ZygoteInit {
                     Log.i(TAG, "...preloaded " + N + " resource in "
                             + (SystemClock.uptimeMillis() - startTime) + "ms.");
                 }
+                // AW:Added for BOOTEVENT
+                logBootEvent("Zygote:preload " + N + " resources in " +
+                        (SystemClock.uptimeMillis()-startTime) + "ms.");
             }
             mResources.finishPreloading();
         } catch (RuntimeException e) {
@@ -513,7 +575,7 @@ public class ZygoteInit {
         }
 
         final String systemServerClasspath = Os.getenv("SYSTEMSERVERCLASSPATH");
-        if (systemServerClasspath != null) {
+        if (systemServerClasspath != null && isFirstBoot) {
             performSystemServerDexOpt(systemServerClasspath);
             // Capturing profiles is only supported for debug or eng builds since selinux normally
             // prevents it.
@@ -783,7 +845,7 @@ public class ZygoteInit {
                 "--setuid=1000",
                 "--setgid=1000",
                 "--setgroups=1001,1002,1003,1004,1005,1006,1007,1008,1009,1010,1018,1021,1023,"
-                        + "1024,1032,1065,3001,3002,3003,3006,3007,3009,3010,3011,3012",
+                        + "1024,1032,1065,3001,3002,3003,3006,3007,3009,3010,3011",
                 "--capabilities=" + capabilities + "," + capabilities,
                 "--nice-name=system_server",
                 "--runtime-args",
@@ -847,6 +909,45 @@ public class ZygoteInit {
 
         /* For child process */
         if (pid == 0) {
+             if (!isFirstBoot) {
+                 mPreloadBaseThread = new Thread() {
+                    @Override
+                    public void run() {
+                        long startThreadPreloadBaseTime = SystemClock.uptimeMillis();
+                        logBootEvent("Zygote:ThreadPreadloadBase start");
+                        preload_base(new TimingsTraceLog("System_Preload_Base", Trace.TRACE_TAG_DALVIK));
+                        Log.d(TAG, "Zygote:ThreadPreadloadBase took " +
+                                  (SystemClock.uptimeMillis()-startThreadPreloadBaseTime) + "ms.");
+                        logBootEvent("Zygote:ThreadPreadloadBase took " +
+                                     (SystemClock.uptimeMillis()-startThreadPreloadBaseTime) + "ms.");
+                    }
+                 };
+                 mPreloadBaseThread.start();
+
+                 mPreloadClassThread = new Thread() {
+                 @Override
+                 public void run() {
+                     preloadClasses();
+                 }
+                 };
+
+                 mPreloadNativeThread = new Thread() {
+                 @Override
+                 public void run() {
+                     nativePreloadAppProcessHALs();
+                     maybePreloadGraphicsDriver();
+                     preloadSharedLibraries();
+                     preloadTextResources();
+                     // Ask the WebViewFactory to do any initialization that must run in the zygote process,
+                     // for memory sharing purposes.
+                     WebViewFactory.prepareWebViewInZygote();
+                     // endPreload();
+                     // warmUpJcaProviders();
+                 }
+                 };
+             }
+
+
             if (hasSecondZygote(abiList)) {
                 waitForSecondaryZygote(socketName);
             }
@@ -947,16 +1048,56 @@ public class ZygoteInit {
                 throw new RuntimeException("No ABI list supplied.");
             }
 
+            isFirstBoot = SystemProperties.getBoolean("persist.sys.boot.first", true);
             // In some configurations, we avoid preloading resources and classes eagerly.
             // In such cases, we will preload things prior to our first fork.
             if (!enableLazyPreload) {
                 bootTimingsTraceLog.traceBegin("ZygotePreload");
+                long startPreloadTime = SystemClock.uptimeMillis();
+                /// AW CODE:boot:reflect VMRuntime setVerifierEnabled
+                Method m = null;
+                try {
+                    m = VMRuntime.class.getDeclaredMethod("setVerifierEnabled", boolean.class);
+                } catch (NoSuchMethodException ex) {
+                    Slog.d(TAG, "VMRuntime.setVerifierEnabled not found.");
+                }
+                if (m != null) {
+                    try {
+                        m.invoke(null, false);
+                        Slog.d(TAG, "VMRuntime.setVerifierEnabled(false)");
+                    } catch (IllegalAccessException ex) {
+                        Slog.d(TAG, "VMRuntime.setVerifierEnabled failed.");
+                    } catch (InvocationTargetException ex) {
+                        Slog.d(TAG, "VMRuntime.setVerifierEnabled failed.");
+                    }
+                }
+                /// AW CODE:end
                 EventLog.writeEvent(LOG_BOOT_PROGRESS_PRELOAD_START,
                         SystemClock.uptimeMillis());
-                preload(bootTimingsTraceLog);
+                // AW:Added for BOOTEVENT
+                logBootEvent("Zygote:ZygotePreload Start");
+                if(isFirstBoot){
+                    preload(bootTimingsTraceLog);
+                } else {
+                    mResources = Resources.getSystem();
+                }
                 EventLog.writeEvent(LOG_BOOT_PROGRESS_PRELOAD_END,
                         SystemClock.uptimeMillis());
                 bootTimingsTraceLog.traceEnd(); // ZygotePreload
+                /// AW CODE:boot:reflect VMRuntime setVerifierEnabled
+                if (m != null) {
+                    try {
+                        m.invoke(null, true);
+                        Slog.d(TAG, "VMRuntime.setVerifierEnabled(true)");
+                    } catch (IllegalAccessException ex) {
+                        Slog.d(TAG, "VMRuntime.setVerifierEnabled failed.");
+                    } catch (InvocationTargetException ex) {
+                        Slog.d(TAG, "VMRuntime.setVerifierEnabled failed.");
+                    }
+                }
+                /// AW CODE:end
+                logBootEvent("Zygote:ZygotePreload took " +
+                        (SystemClock.uptimeMillis()-startPreloadTime) + "ms.");
             }
 
             // Do an initial gc to clean up after startup
@@ -971,13 +1112,51 @@ public class ZygoteInit {
             ZygoteHooks.stopZygoteNoThreadCreation();
 
             zygoteServer = new ZygoteServer(isPrimaryZygote);
-
+            Runnable r = null;
             if (startSystemServer) {
-                Runnable r = forkSystemServer(abiList, zygoteSocketName, zygoteServer);
+                r = forkSystemServer(abiList, zygoteSocketName, zygoteServer);
 
                 // {@code r == null} in the parent (zygote) process, and {@code r != null} in the
                 // child (system_server) process.
+            }
+
+            if (startSystemServer) {
                 if (r != null) {
+                     if (!enableLazyPreload && !isFirstBoot) {
+                         try {
+                                 mPreloadBaseThread.join();
+                             } catch (InterruptedException e) {
+                                 e.printStackTrace();
+                          }
+
+                         new Thread() {
+                         @Override
+                         public void run() {
+                              Log.d(TAG, "Zygote:ThreadPreadloadClass start");
+                              long startThreadPreloadClassTime = SystemClock.uptimeMillis();
+                              logBootEvent("Zygote:ThreadPreadloadClass start");
+                              mPreloadClassThread.setPriority(Thread.MAX_PRIORITY);
+                              mPreloadClassThread.start();
+                              mPreloadNativeThread.start();
+
+                              try {
+                                      mPreloadClassThread.join();
+                                      mPreloadNativeThread.join();
+                                      endPreload();
+                                      warmUpJcaProviders();
+                                      Log.d(TAG, "Zygote:ThreadPreadloadClass took " +
+                                                    (SystemClock.uptimeMillis()-startThreadPreloadClassTime) + "ms.");
+                                      logBootEvent("Zygote:ThreadPreadloadClass took " +
+                                                    (SystemClock.uptimeMillis()-startThreadPreloadClassTime) + "ms.");
+                                      sPreloadComplete = true;
+
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
+
+                           }
+                           }.start();
+                    }
                     r.run();
                     return;
                 }

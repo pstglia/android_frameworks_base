@@ -5022,10 +5022,14 @@ public class AccountManagerService
         }
 
         private void unbind() {
-            if (mAuthenticator != null) {
-                mAuthenticator = null;
-                mContext.unbindService(this);
+            ///AW CODE:[fix]#55561 system_server crash brcause Null Pointer Exception.  2021.11.22
+            synchronized (this){
+                if (mAuthenticator != null) {
+                    mAuthenticator = null;
+                    mContext.unbindService(this);
+                }
             }
+            /// AW:add end
         }
 
         private void scheduleTimeout() {

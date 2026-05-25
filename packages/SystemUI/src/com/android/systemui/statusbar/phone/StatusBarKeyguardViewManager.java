@@ -398,18 +398,22 @@ public class StatusBarKeyguardViewManager implements RemoteInputController.Callb
      * {@link KeyguardBouncer#needsFullscreenBouncer()}.
      */
     protected void showBouncerOrKeyguard(boolean hideBouncerWhenShowing) {
-        if (mBouncer.needsFullscreenBouncer() && !mDozing) {
-            // The keyguard might be showing (already). So we need to hide it.
-            mStatusBar.hideKeyguard();
-            mBouncer.show(true /* resetSecuritySelection */);
-        } else {
-            mStatusBar.showKeyguard();
-            if (hideBouncerWhenShowing) {
-                hideBouncer(shouldDestroyViewOnReset() /* destroyView */);
-                mBouncer.prepare();
+        // pstglia: ORANGEPI
+        if (mBouncer != null) {
+            if (mBouncer.needsFullscreenBouncer() && !mDozing) {
+                // The keyguard might be showing (already). So we need to hide it.
+                mStatusBar.hideKeyguard();
+                mBouncer.show(true /* resetSecuritySelection */);
+            } else {
+                mStatusBar.showKeyguard();
+                if (hideBouncerWhenShowing) {
+                    hideBouncer(shouldDestroyViewOnReset() /* destroyView */);
+                    mBouncer.prepare();
+                }
             }
+            updateStates();
         }
-        updateStates();
+        // END pstglia: ORANGEPI
     }
 
     protected boolean shouldDestroyViewOnReset() {
@@ -533,7 +537,11 @@ public class StatusBarKeyguardViewManager implements RemoteInputController.Callb
     public void reset(boolean hideBouncerWhenShowing) {
         if (mShowing) {
             // Hide quick settings.
-            mNotificationPanelViewController.resetViews(/* animate= */ true);
+            // pstglia: ORANGEPI
+            if (mNotificationPanelViewController != null){
+                mNotificationPanelViewController.resetViews(/* animate= */ true);
+            }
+            // END pstglia: ORANGEPI
             // Hide bouncer and quick-quick settings.
             if (mOccluded && !mDozing) {
                 mStatusBar.hideKeyguard();
@@ -544,7 +552,11 @@ public class StatusBarKeyguardViewManager implements RemoteInputController.Callb
                 showBouncerOrKeyguard(hideBouncerWhenShowing);
             }
             resetAlternateAuth(false);
-            mKeyguardUpdateManager.sendKeyguardReset();
+            // pstglia: ORANGEPI
+            if (mKeyguardUpdateManager != null) {
+                mKeyguardUpdateManager.sendKeyguardReset();
+            }
+            // END pstglia: ORANGEPI
             updateStates();
         }
     }
@@ -572,35 +584,47 @@ public class StatusBarKeyguardViewManager implements RemoteInputController.Callb
 
     @Override
     public void onStartedWakingUp() {
-        mStatusBar.getNotificationShadeWindowView().getWindowInsetsController()
-                .setAnimationsDisabled(false);
-        NavigationBarView navBarView = mStatusBar.getNavigationBarView();
-        if (navBarView != null) {
-            navBarView.forEachView(view ->
-                    view.animate()
-                            .alpha(1f)
-                            .setDuration(NAV_BAR_CONTENT_FADE_DURATION)
-                            .start());
+        /// AW CODE:[bugfix]: fix TvStatusBar null pointer exception and disabled keyguard
+        if(mStatusBar !=null) {
+        /// AW add end
+		mStatusBar.getNotificationShadeWindowView().getWindowInsetsController()
+			.setAnimationsDisabled(false);
+		NavigationBarView navBarView = mStatusBar.getNavigationBarView();
+		if (navBarView != null) {
+		    navBarView.forEachView(view ->
+			    view.animate()
+				    .alpha(1f)
+				    .setDuration(NAV_BAR_CONTENT_FADE_DURATION)
+				    .start());
+		}
         }
     }
 
     @Override
     public void onStartedGoingToSleep() {
-        mStatusBar.getNotificationShadeWindowView().getWindowInsetsController()
-                .setAnimationsDisabled(true);
-        NavigationBarView navBarView = mStatusBar.getNavigationBarView();
-        if (navBarView != null) {
-            navBarView.forEachView(view ->
-                    view.animate()
-                            .alpha(0f)
-                            .setDuration(NAV_BAR_CONTENT_FADE_DURATION)
-                            .start());
+        /// AW CODE:[bugfix]: fix TvStatusBar null pointer exception and disabled keyguard
+        if(mStatusBar != null) {
+        /// AW add end
+		mStatusBar.getNotificationShadeWindowView().getWindowInsetsController()
+			.setAnimationsDisabled(true);
+		NavigationBarView navBarView = mStatusBar.getNavigationBarView();
+		if (navBarView != null) {
+		    navBarView.forEachView(view ->
+			    view.animate()
+				    .alpha(0f)
+				    .setDuration(NAV_BAR_CONTENT_FADE_DURATION)
+				    .start());
+		}
         }
     }
 
     @Override
     public void onFinishedGoingToSleep() {
-        mBouncer.onScreenTurnedOff();
+        /// AW CODE:[bugfix]: fix TvStatusBar null pointer exception and disabled keyguard
+        if(mBouncer != null) {
+        /// AW add end
+		mBouncer.onScreenTurnedOff();
+        }
     }
 
     @Override
@@ -645,55 +669,57 @@ public class StatusBarKeyguardViewManager implements RemoteInputController.Callb
 
     @Override
     public void setOccluded(boolean occluded, boolean animate) {
-        mStatusBar.setOccluded(occluded);
-        if (occluded && !mOccluded && mShowing) {
-            SysUiStatsLog.write(SysUiStatsLog.KEYGUARD_STATE_CHANGED,
-                    SysUiStatsLog.KEYGUARD_STATE_CHANGED__STATE__OCCLUDED);
-            if (mStatusBar.isInLaunchTransition()) {
-                setOccludedAndUpdateStates(true);
-                mStatusBar.fadeKeyguardAfterLaunchTransition(null /* beforeFading */,
-                        new Runnable() {
-                            @Override
-                            public void run() {
-                                mNotificationShadeWindowController.setKeyguardOccluded(mOccluded);
-                                reset(true /* hideBouncerWhenShowing */);
-                            }
-                        });
-                return;
-            }
+        if (mStatusBar != null) {
+		mStatusBar.setOccluded(occluded);
+		if (occluded && !mOccluded && mShowing) {
+		    SysUiStatsLog.write(SysUiStatsLog.KEYGUARD_STATE_CHANGED,
+			    SysUiStatsLog.KEYGUARD_STATE_CHANGED__STATE__OCCLUDED);
+		    if (mStatusBar.isInLaunchTransition()) {
+			setOccludedAndUpdateStates(true);
+			mStatusBar.fadeKeyguardAfterLaunchTransition(null /* beforeFading */,
+				new Runnable() {
+				    @Override
+				    public void run() {
+					mNotificationShadeWindowController.setKeyguardOccluded(mOccluded);
+					reset(true /* hideBouncerWhenShowing */);
+				    }
+				});
+			return;
+		    }
 
-            if (mStatusBar.isLaunchingActivityOverLockscreen()) {
-                setOccludedAndUpdateStates(true);
+		    if (mStatusBar.isLaunchingActivityOverLockscreen()) {
+			setOccludedAndUpdateStates(true);
 
-                // When isLaunchingActivityOverLockscreen() is true, we know for sure that the post
-                // collapse runnables will be run.
-                mShadeController.get().addPostCollapseAction(() -> {
-                    mNotificationShadeWindowController.setKeyguardOccluded(mOccluded);
-                    reset(true /* hideBouncerWhenShowing */);
-                });
-                return;
-            }
-        } else if (!occluded && mOccluded && mShowing) {
-            SysUiStatsLog.write(SysUiStatsLog.KEYGUARD_STATE_CHANGED,
-                    SysUiStatsLog.KEYGUARD_STATE_CHANGED__STATE__SHOWN);
-        }
-        boolean isOccluding = !mOccluded && occluded;
-        setOccludedAndUpdateStates(occluded);
-        if (mShowing) {
-            mMediaManager.updateMediaMetaData(false, animate && !occluded);
-        }
-        mNotificationShadeWindowController.setKeyguardOccluded(occluded);
-        mStatusBarOptionalLazy.get().map(StatusBar::getVisualizerView).ifPresent(
-                v -> v.setOccluded(occluded));
+			// When isLaunchingActivityOverLockscreen() is true, we know for sure that the post
+			// collapse runnables will be run.
+			mShadeController.get().addPostCollapseAction(() -> {
+			    mNotificationShadeWindowController.setKeyguardOccluded(mOccluded);
+			    reset(true /* hideBouncerWhenShowing */);
+			});
+			return;
+		    }
+		} else if (!occluded && mOccluded && mShowing) {
+		    SysUiStatsLog.write(SysUiStatsLog.KEYGUARD_STATE_CHANGED,
+			    SysUiStatsLog.KEYGUARD_STATE_CHANGED__STATE__SHOWN);
+		}
+		boolean isOccluding = !mOccluded && occluded;
+		setOccludedAndUpdateStates(occluded);
+		if (mShowing) {
+		    mMediaManager.updateMediaMetaData(false, animate && !occluded);
+		}
+		mNotificationShadeWindowController.setKeyguardOccluded(occluded);
+		mStatusBarOptionalLazy.get().map(StatusBar::getVisualizerView).ifPresent(
+			v -> v.setOccluded(occluded));
 
-        // setDozing(false) will call reset once we stop dozing.
-        if (!mDozing) {
-            // If Keyguard is reshown, don't hide the bouncer as it might just have been requested
-            // by a FLAG_DISMISS_KEYGUARD_ACTIVITY.
-            reset(isOccluding /* hideBouncerWhenShowing*/);
-        }
-        if (animate && !occluded && mShowing && !mBouncer.isShowing()) {
-            mStatusBar.animateKeyguardUnoccluding();
+		// setDozing(false) will call reset once we stop dozing.
+		if (!mDozing) {
+		    // If Keyguard is reshown, don't hide the bouncer as it might just have been requested
+		    // by a FLAG_DISMISS_KEYGUARD_ACTIVITY.
+		    reset(isOccluding /* hideBouncerWhenShowing*/);
+		}
+		if (animate && !occluded && mShowing && !mBouncer.isShowing()) {
+		    mStatusBar.animateKeyguardUnoccluding();
+		}
         }
     }
 

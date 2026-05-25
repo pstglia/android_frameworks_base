@@ -411,11 +411,16 @@ public class NotificationShadeWindowControllerImpl implements NotificationShadeW
             }
             visible = true;
         }
-        if (visible) {
-            mNotificationShadeView.setVisibility(View.VISIBLE);
-        } else {
-            mNotificationShadeView.setVisibility(View.INVISIBLE);
+        
+        // pstglia: ORANGEPI
+        if (mNotificationShadeView != null) {
+            if (visible) {
+                mNotificationShadeView.setVisibility(View.VISIBLE);
+            } else {
+                mNotificationShadeView.setVisibility(View.INVISIBLE);
+            }
         }
+        // END pstglia: ORANGEPI
     }
 
     private boolean isExpanded(State state) {

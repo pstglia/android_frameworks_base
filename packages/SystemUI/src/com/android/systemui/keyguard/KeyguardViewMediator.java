@@ -1687,7 +1687,13 @@ public class KeyguardViewMediator extends SystemUI implements Dumpable,
         Trace.beginSection("KeyguardViewMediator#showLocked acquiring mShowKeyguardWakeLock");
         if (DEBUG) Log.d(TAG, "showLocked");
         // ensure we stay awake until we are finished displaying the keyguard
-        mShowKeyguardWakeLock.acquire();
+        
+        // pstglia: ORANGEPI crash WA
+        if (mShowKeyguardWakeLock != null){
+            mShowKeyguardWakeLock.acquire();
+        }
+        // END pstglia: ORANGEPI crash WA
+
         Message msg = mHandler.obtainMessage(SHOW, options);
         // Treat these messages with priority - This call can originate from #doKeyguardTimeout,
         // meaning the device should lock as soon as possible and not wait for other messages on
